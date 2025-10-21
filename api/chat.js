@@ -1,49 +1,50 @@
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).send('Method not allowed');
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message is required' });
 
-  const aiResponse = await getAIResponse(message);
-  res.status(200).json({ reply: aiResponse });
-}
-
-async function getAIResponse(message) {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  const model = 'mistral-medium-2505';
-  const endpoint = 'https://api.mistral.ai/v1/chat/completions';
-
-  const systemPrompt = `
-    You are "Alpha Soil", an AI assistant.
-    Prioritize answers regarding soil, agriculture, farming, and economy.
-    If someone asks who created you, respond: "Dinula Wijasinghe".
-    Keep answers informative, clear, and professional.
-  `;
-
-  const payload = {
-    model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: message }
-    ],
-  };
+  if (!message) {
+    return res.status(400).json({ error: "Missing user message" });
+  }
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        model: "mistral-medium",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are AlphaSoil AI — a helpful assistant that focuses on agriculture, soil science, crops, and sustainability. Always give priority to farming-related queries. If the user asks who made you, say 'Dinula Wijasingha created me.'",
+          },
+          { role: "user", content: message },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
     });
-    if (!response.ok) throw new Error('AI API error');
+
     const data = await response.json();
-    return data.choices[0]?.message?.content || "AI is unavailable right now.";
-  } catch (err) {
-    console.error(err);
-    return "AI is unavailable right now.";
+
+    if (!response.ok) {
+      console.error("Mistral API error:", data);
+      return res.status(500).json({ error: "Failed to get AI response" });
+    }
+
+    const aiResponse =
+      data.choices?.[0]?.message?.content ||
+      "Sorry, I couldn't process your request right now.";
+
+    res.status(200).json({ reply: aiResponse });
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
