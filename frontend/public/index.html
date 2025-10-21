@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alpha Soil AI 🌱</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- Left QR Code -->
+  <div id="donation-qr" class="qr-container">
+    <a href="https://www.paypal.com/ncp/payment/H9WJ34BUA4PU4" target="_blank">
+      <img src="donation-qr.png" alt="Donate">
+      <p>Donate</p>
+    </a>
+  </div>
+
+  <!-- Right QR Code -->
+  <div id="more-qr" class="qr-container">
+    <a href="https://drive.google.com/file/d/1k6T-HLAe-t8mDh4TsLKmNe2blvWY-hFp/view?usp=sharing" target="_blank">
+      <img src="more-qr.png" alt="More info">
+      <p>More</p>
+    </a>
+  </div>
+
+  <div class="chat-container">
+    <h1>Alpha Soil AI</h1>
+    <h4>Your AI assistant for soil & crops</h4>
+
+    <div id="chat"></div>
+
+    <div class="input-area">
+      <input type="text" id="message" placeholder="Type a message...">
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <footer>Alpha Soil AI © Dinula Wijasinghe</footer>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("message");
+    const send = document.getElementById("send");
+
+    async function appendMessage(text, sender) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", sender);
+      msgDiv.textContent = text;
+      chat.appendChild(msgDiv);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const msg = input.value.trim();
+      if (!msg) return;
+      appendMessage(msg, "user");
+      input.value = "";
+
+      // Call backend API
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+        const data = await response.json();
+        appendMessage(data.reply, "ai");
+      } catch (err) {
+        appendMessage("AI is currently unavailable.", "ai");
+        console.error(err);
+      }
+    }
+
+    send.addEventListener("click", sendMessage);
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>
